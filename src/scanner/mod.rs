@@ -119,14 +119,18 @@ impl Scanner {
                     }
                 }
 
-                let mut literal = self.source[self.start..self.current]
+                let mut literal: String = self.source[self.start..self.current]
                     .iter()
-                    .collect::<String>()
-                    .parse::<f32>()
-                    .unwrap()
-                    .to_string();
+                    .collect::<String>();
                 if !literal.contains(".") {
                     literal.push_str(".0");
+                } else {
+                    let mut split = literal.split(".").collect::<Vec<&str>>();
+                    if split[1].chars().all(|c| c == '0') {
+                        split.pop();
+                        split.push("0");
+                        literal = split.join(".");
+                    }
                 }
 
                 self.add_token(TokenKind::Number, Some(literal));
