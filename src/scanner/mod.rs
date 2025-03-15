@@ -48,6 +48,45 @@ impl Scanner {
             '+' => self.add_token(TokenKind::Plus, None),
             ';' => self.add_token(TokenKind::Semicolon, None),
             '*' => self.add_token(TokenKind::Star, None),
+            '!' => {
+                let kind = match self.try_match_next('=') {
+                    true => TokenKind::BangEqual,
+                    false => TokenKind::Bang,
+                };
+                self.add_token(kind, None);
+            }
+            '=' => {
+                let kind = match self.try_match_next('=') {
+                    true => TokenKind::EqualEqual,
+                    false => TokenKind::Equal,
+                };
+                self.add_token(kind, None);
+            }
+            '<' => {
+                let kind = match self.try_match_next('=') {
+                    true => TokenKind::LessEqual,
+                    false => TokenKind::Less,
+                };
+                self.add_token(kind, None);
+            }
+            '>' => {
+                let kind = match self.try_match_next('=') {
+                    true => TokenKind::GreaterEqual,
+                    false => TokenKind::Equal,
+                };
+                self.add_token(kind, None);
+            }
+            '/' => match self.try_match_next('/') {
+                true => {
+                    //comments
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                }
+                false => self.add_token(TokenKind::Slash, None),
+            },
+            ' ' | '\r' | '\t' => {}
+            '\n' => self.line += 1,
             _ => {
                 self.has_errors = true;
                 eprintln!("[line {}] Error: Unexpected character: {}", self.line, c)
@@ -65,6 +104,26 @@ impl Scanner {
         let lexeme: String = self.source[self.start..self.current].iter().collect();
         self.tokens
             .push(Token::new(kind, lexeme, literal, self.line));
+    }
+
+    fn try_match_next(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+
+        if self.source[self.current] != expected {
+            return false;
+        }
+
+        self.current += 1;
+        true
+    }
+
+    fn peek(&self) -> char {
+        if self.is_at_end() {
+            return '\0';
+        }
+        self.source[self.current]
     }
 
     fn is_at_end(&self) -> bool {
