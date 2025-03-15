@@ -1,4 +1,6 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
+
+use lazy_static::lazy_static;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenKind {
@@ -122,4 +124,27 @@ impl Display for Token {
         };
         write!(f, "{} {} {}", self.kind, self.lexeme, literal)
     }
+}
+
+lazy_static! {
+    pub static ref KEYWORDS: HashMap<&'static str, TokenKind> = {
+        let mut keywords = HashMap::new();
+        keywords.insert("and", TokenKind::And);
+        keywords.insert("class", TokenKind::Class);
+        keywords.insert("else", TokenKind::Else);
+        keywords.insert("false", TokenKind::False);
+        keywords.insert("for", TokenKind::For);
+        keywords.insert("fun", TokenKind::Fun);
+        keywords.insert("if", TokenKind::If);
+        keywords.insert("nil", TokenKind::Nil);
+        keywords.insert("or", TokenKind::Or);
+        keywords.insert("print", TokenKind::Print);
+        keywords.insert("return", TokenKind::Return);
+        keywords.insert("super", TokenKind::Super);
+        keywords.insert("this", TokenKind::This);
+        keywords.insert("true", TokenKind::True);
+        keywords.insert("var", TokenKind::Var);
+        keywords.insert("while", TokenKind::While);
+        keywords
+    };
 }

@@ -1,4 +1,4 @@
-use token::{Token, TokenKind};
+use token::{Token, TokenKind, KEYWORDS};
 
 pub mod token;
 
@@ -130,6 +130,17 @@ impl Scanner {
                 }
 
                 self.add_token(TokenKind::Number, Some(literal));
+            }
+            c if c.is_alphabetic() => {
+                while self.peek().is_alphanumeric() {
+                    self.advance();
+                }
+
+                let lexume: String = self.source[self.start..self.current].iter().collect();
+                match KEYWORDS.get(&lexume.as_str()) {
+                    Some(kind) => self.add_token(*kind, None),
+                    None => self.add_token(TokenKind::Identifier, None),
+                }
             }
             _ => {
                 self.has_errors = true;
