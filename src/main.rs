@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use std::process;
 
 use scanner::Scanner;
 
@@ -28,6 +29,10 @@ fn main() {
                 let tokens = scanner.scan_tokens();
                 for token in tokens {
                     println!("{}", token)
+                }
+
+                if scanner.has_errors() {
+                    process::exit(65);
                 }
             } else {
                 println!("EOF  null"); // Placeholder, remove this line when implementing the scanner

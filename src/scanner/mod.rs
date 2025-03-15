@@ -9,6 +9,7 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
+    has_errors: bool,
 }
 
 impl Scanner {
@@ -19,6 +20,7 @@ impl Scanner {
             start: 0,
             current: 0,
             line: 1,
+            has_errors: false,
         }
     }
 
@@ -47,6 +49,7 @@ impl Scanner {
             ';' => self.add_token(TokenKind::Semicolon, None),
             '*' => self.add_token(TokenKind::Star, None),
             _ => {
+                self.has_errors = true;
                 eprintln!("[line {}] Error: Unexpected character: {}", self.line, c)
             }
         }
@@ -66,5 +69,9 @@ impl Scanner {
 
     fn is_at_end(&self) -> bool {
         return self.current >= self.source.len();
+    }
+
+    fn has_errors(&self) -> bool {
+        self.has_errors
     }
 }
