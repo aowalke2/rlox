@@ -46,7 +46,9 @@ impl Scanner {
             '+' => self.add_token(TokenKind::Plus, None),
             ';' => self.add_token(TokenKind::Semicolon, None),
             '*' => self.add_token(TokenKind::Star, None),
-            _ => panic!(),
+            _ => {
+                eprintln!("[line {}] Error: Unexpected character: {}", self.line, c)
+            }
         }
     }
 
