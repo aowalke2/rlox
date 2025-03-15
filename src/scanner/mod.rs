@@ -87,6 +87,42 @@ impl Scanner {
             },
             ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
+            '"' => {
+                while self.peek() != '"' && !self.is_at_end() {
+                    if self.peek() == '\n' {
+                        self.line += 1;
+                    }
+                    self.advance();
+                }
+
+                if self.is_at_end() {
+                    self.has_errors = true;
+                    eprintln!("[line {}] Error: Unterminated string.", self.line)
+                }
+
+                self.advance();
+                let literal: String = self.source[self.start + 1..self.current - 1]
+                    .iter()
+                    .collect();
+                self.add_token(TokenKind::String, Some(literal));
+            }
+            c if c.is_digit(10) => {
+                while self.peek().is_digit(10) {
+                    self.advance();
+                }
+
+                if self.peek() == '.' && self.peek_next().is_digit(10) {
+                    self.advance();
+                    while self.peek().is_digit(10) {
+                        self.advance();
+                    }
+                }
+
+                let literal: String = self.source[self.start + 1..self.current - 1]
+                    .iter()
+                    .collect();
+                self.add_token(TokenKind::Number, Some(literal));
+            }
             _ => {
                 self.has_errors = true;
                 eprintln!("[line {}] Error: Unexpected character: {}", self.line, c)
@@ -126,11 +162,18 @@ impl Scanner {
         self.source[self.current]
     }
 
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            return '\0';
+        }
+        self.source[self.current + 1]
+    }
+
     fn is_at_end(&self) -> bool {
         return self.current >= self.source.len();
     }
 
-    pub fn has_errors(&self) -> bool {
+    pub fn errors(&self) -> bool {
         self.has_errors
     }
 }

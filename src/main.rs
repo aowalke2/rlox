@@ -31,7 +31,7 @@ fn main() {
                     println!("{}", token)
                 }
 
-                if scanner.has_errors() {
+                if scanner.errors() {
                     process::exit(65);
                 }
             } else {
