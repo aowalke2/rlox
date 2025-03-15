@@ -118,9 +118,7 @@ impl Scanner {
                     }
                 }
 
-                let literal: String = self.source[self.start + 1..self.current - 1]
-                    .iter()
-                    .collect();
+                let literal: String = self.source[self.start..self.current].iter().collect();
                 self.add_token(TokenKind::Number, Some(literal));
             }
             _ => {
