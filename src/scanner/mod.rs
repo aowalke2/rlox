@@ -131,8 +131,8 @@ impl Scanner {
 
                 self.add_token(TokenKind::Number, Some(literal));
             }
-            c if c.is_alphabetic() => {
-                while self.peek().is_alphanumeric() {
+            c if c.is_alphabetic() || c == '_' => {
+                while self.peek().is_alphanumeric() || self.peek() == '_' {
                     self.advance();
                 }
 
