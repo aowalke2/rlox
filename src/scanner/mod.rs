@@ -119,7 +119,12 @@ impl Scanner {
                     }
                 }
 
-                let mut literal: String = self.source[self.start..self.current].iter().collect();
+                let mut literal = self.source[self.start..self.current]
+                    .iter()
+                    .collect::<String>()
+                    .parse::<f32>()
+                    .unwrap()
+                    .to_string();
                 if !literal.contains(".") {
                     literal.push_str(".0");
                 }
