@@ -98,6 +98,7 @@ impl Scanner {
                 if self.is_at_end() {
                     self.has_errors = true;
                     eprintln!("[line {}] Error: Unterminated string.", self.line)
+                    return;
                 }
 
                 self.advance();
@@ -107,13 +108,13 @@ impl Scanner {
                 self.add_token(TokenKind::String, Some(literal));
             }
             c if c.is_digit(10) => {
-                while self.peek().is_digit(10) && !self.is_at_end() {
+                while self.peek().is_digit(10) {
                     self.advance();
                 }
 
                 if self.peek() == '.' && self.peek_next().is_digit(10) {
                     self.advance();
-                    while self.peek().is_digit(10) && !self.is_at_end() {
+                    while self.peek().is_digit(10) {
                         self.advance();
                     }
                 }
