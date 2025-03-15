@@ -72,7 +72,7 @@ impl Scanner {
             '>' => {
                 let kind = match self.try_match_next('=') {
                     true => TokenKind::GreaterEqual,
-                    false => TokenKind::Equal,
+                    false => TokenKind::Greater,
                 };
                 self.add_token(kind, None);
             }
