@@ -107,13 +107,13 @@ impl Scanner {
                 self.add_token(TokenKind::String, Some(literal));
             }
             c if c.is_digit(10) => {
-                while self.peek().is_digit(10) {
+                while self.peek().is_digit(10) && !self.is_at_end() {
                     self.advance();
                 }
 
                 if self.peek() == '.' && self.peek_next().is_digit(10) {
                     self.advance();
-                    while self.peek().is_digit(10) {
+                    while self.peek().is_digit(10) && !self.is_at_end() {
                         self.advance();
                     }
                 }
