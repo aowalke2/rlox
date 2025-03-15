@@ -71,7 +71,7 @@ impl Scanner {
         return self.current >= self.source.len();
     }
 
-    fn has_errors(&self) -> bool {
+    pub fn has_errors(&self) -> bool {
         self.has_errors
     }
 }
