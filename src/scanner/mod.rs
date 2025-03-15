@@ -119,7 +119,11 @@ impl Scanner {
                     }
                 }
 
-                let literal: String = self.source[self.start..self.current].iter().collect();
+                let mut literal: String = self.source[self.start..self.current].iter().collect();
+                if !literal.contains(".") {
+                    literal.push_str(".0");
+                }
+
                 self.add_token(TokenKind::Number, Some(literal));
             }
             _ => {
