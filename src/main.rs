@@ -5,6 +5,8 @@ use std::process;
 
 use scanner::Scanner;
 
+mod expr;
+mod parser;
 mod scanner;
 mod token;
 

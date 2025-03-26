@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenKind, KEYWORDS};
+use crate::token::{LiteralKind, Token, TokenKind, KEYWORDS};
 
 //lexer
 pub struct Scanner {
@@ -28,51 +28,55 @@ impl Scanner {
             self.scan_token();
         }
 
-        self.tokens
-            .push(Token::new(TokenKind::EOF, "".into(), None, self.line));
+        self.tokens.push(Token::new(
+            TokenKind::EOF,
+            "".into(),
+            LiteralKind::Null,
+            self.line,
+        ));
         &self.tokens
     }
 
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
-            '(' => self.add_token(TokenKind::LeftParanthesis, None),
-            ')' => self.add_token(TokenKind::RightParanthesis, None),
-            '{' => self.add_token(TokenKind::LeftBrace, None),
-            '}' => self.add_token(TokenKind::RightBrace, None),
-            ',' => self.add_token(TokenKind::Comma, None),
-            '.' => self.add_token(TokenKind::Dot, None),
-            '-' => self.add_token(TokenKind::Minus, None),
-            '+' => self.add_token(TokenKind::Plus, None),
-            ';' => self.add_token(TokenKind::Semicolon, None),
-            '*' => self.add_token(TokenKind::Star, None),
+            '(' => self.add_token(TokenKind::LeftParanthesis, LiteralKind::Null),
+            ')' => self.add_token(TokenKind::RightParanthesis, LiteralKind::Null),
+            '{' => self.add_token(TokenKind::LeftBrace, LiteralKind::Null),
+            '}' => self.add_token(TokenKind::RightBrace, LiteralKind::Null),
+            ',' => self.add_token(TokenKind::Comma, LiteralKind::Null),
+            '.' => self.add_token(TokenKind::Dot, LiteralKind::Null),
+            '-' => self.add_token(TokenKind::Minus, LiteralKind::Null),
+            '+' => self.add_token(TokenKind::Plus, LiteralKind::Null),
+            ';' => self.add_token(TokenKind::Semicolon, LiteralKind::Null),
+            '*' => self.add_token(TokenKind::Star, LiteralKind::Null),
             '!' => {
                 let kind = match self.try_match_next('=') {
                     true => TokenKind::BangEqual,
                     false => TokenKind::Bang,
                 };
-                self.add_token(kind, None);
+                self.add_token(kind, LiteralKind::Null);
             }
             '=' => {
                 let kind = match self.try_match_next('=') {
                     true => TokenKind::EqualEqual,
                     false => TokenKind::Equal,
                 };
-                self.add_token(kind, None);
+                self.add_token(kind, LiteralKind::Null);
             }
             '<' => {
                 let kind = match self.try_match_next('=') {
                     true => TokenKind::LessEqual,
                     false => TokenKind::Less,
                 };
-                self.add_token(kind, None);
+                self.add_token(kind, LiteralKind::Null);
             }
             '>' => {
                 let kind = match self.try_match_next('=') {
                     true => TokenKind::GreaterEqual,
                     false => TokenKind::Greater,
                 };
-                self.add_token(kind, None);
+                self.add_token(kind, LiteralKind::Null);
             }
             '/' => match self.try_match_next('/') {
                 true => {
@@ -81,7 +85,7 @@ impl Scanner {
                         self.advance();
                     }
                 }
-                false => self.add_token(TokenKind::Slash, None),
+                false => self.add_token(TokenKind::Slash, LiteralKind::Null),
             },
             ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
@@ -103,7 +107,7 @@ impl Scanner {
                 let literal: String = self.source[self.start + 1..self.current - 1]
                     .iter()
                     .collect();
-                self.add_token(TokenKind::String, Some(literal));
+                self.add_token(TokenKind::String, LiteralKind::String(literal));
             }
             c if c.is_digit(10) => {
                 while self.peek().is_digit(10) {
@@ -131,7 +135,7 @@ impl Scanner {
                     }
                 }
 
-                self.add_token(TokenKind::Number, Some(literal));
+                self.add_token(TokenKind::Number, LiteralKind::Number(literal));
             }
             c if c.is_alphabetic() || c == '_' => {
                 while self.peek().is_alphanumeric() || self.peek() == '_' {
@@ -140,8 +144,8 @@ impl Scanner {
 
                 let lexume: String = self.source[self.start..self.current].iter().collect();
                 match KEYWORDS.get(&lexume.as_str()) {
-                    Some(kind) => self.add_token(*kind, None),
-                    None => self.add_token(TokenKind::Identifier, None),
+                    Some(kind) => self.add_token(*kind, LiteralKind::Null),
+                    None => self.add_token(TokenKind::Identifier, LiteralKind::Null),
                 }
             }
             _ => {
@@ -157,7 +161,7 @@ impl Scanner {
         c
     }
 
-    fn add_token(&mut self, kind: TokenKind, literal: Option<String>) {
+    fn add_token(&mut self, kind: TokenKind, literal: LiteralKind) {
         let lexeme: String = self.source[self.start..self.current].iter().collect();
         self.tokens
             .push(Token::new(kind, lexeme, literal, self.line));

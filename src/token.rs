@@ -97,16 +97,24 @@ impl Display for TokenKind {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum LiteralKind {
+    String(String),
+    Number(String),
+    Bool(bool),
+    Null,
+}
+
 #[derive(Debug, Clone)]
 pub struct Token {
     kind: TokenKind,
     lexeme: String,
-    literal: Option<String>,
+    literal: LiteralKind,
     line: usize,
 }
 
 impl Token {
-    pub fn new(kind: TokenKind, lexeme: String, literal: Option<String>, line: usize) -> Self {
+    pub fn new(kind: TokenKind, lexeme: String, literal: LiteralKind, line: usize) -> Self {
         Token {
             kind,
             lexeme,
@@ -119,9 +127,12 @@ impl Token {
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let literal = match &self.literal {
-            Some(s) => s.clone(),
-            None => "null".to_string(),
+            LiteralKind::String(string) => string,
+            LiteralKind::Number(number) => &number,
+            LiteralKind::Bool(bool) => &bool.to_string(),
+            LiteralKind::Null => &"null".to_string(),
         };
+
         write!(f, "{} {} {}", self.kind, self.lexeme, literal)
     }
 }
