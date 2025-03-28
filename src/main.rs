@@ -47,7 +47,7 @@ fn main() {
                 let mut parser = Parser::new(tokens.clone());
                 match parser.parse() {
                     Ok(expr) => println!("{}", ast_printer.print(expr)),
-                    Err(_) => return,
+                    Err(_) => process::exit(65),
                 }
             }
             _ => {

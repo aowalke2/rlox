@@ -244,11 +244,11 @@ pub fn error(token: Token, message: &str) {
     if token.kind == TokenKind::EOF {
         report(token.line, format!(" at end {}", message));
     } else {
-        report(token.line, format!("at '{}' {}", &token.lexeme, message));
+        report(token.line, format!("at '{}': {}", &token.lexeme, message));
     }
 }
 
 pub fn report(line: usize, message: String) {
-    let err = format!("[Line {}] Error: {}", line, message);
+    let err = format!("[line {}] Error: {}", line, message);
     eprintln!("{}", err);
 }
