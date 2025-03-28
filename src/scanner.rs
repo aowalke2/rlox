@@ -31,7 +31,7 @@ impl Scanner {
         self.tokens.push(Token::new(
             TokenKind::EOF,
             "".into(),
-            LiteralKind::Null,
+            LiteralKind::Nil,
             self.line,
         ));
         &self.tokens
@@ -40,52 +40,52 @@ impl Scanner {
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
-            '(' => self.add_token(TokenKind::LeftParanthesis, LiteralKind::Null),
-            ')' => self.add_token(TokenKind::RightParanthesis, LiteralKind::Null),
-            '{' => self.add_token(TokenKind::LeftBrace, LiteralKind::Null),
-            '}' => self.add_token(TokenKind::RightBrace, LiteralKind::Null),
-            ',' => self.add_token(TokenKind::Comma, LiteralKind::Null),
-            '.' => self.add_token(TokenKind::Dot, LiteralKind::Null),
-            '-' => self.add_token(TokenKind::Minus, LiteralKind::Null),
-            '+' => self.add_token(TokenKind::Plus, LiteralKind::Null),
-            ';' => self.add_token(TokenKind::Semicolon, LiteralKind::Null),
-            '*' => self.add_token(TokenKind::Star, LiteralKind::Null),
+            '(' => self.add_token(TokenKind::LeftParenthesis, LiteralKind::Nil),
+            ')' => self.add_token(TokenKind::RightParenthesis, LiteralKind::Nil),
+            '{' => self.add_token(TokenKind::LeftBrace, LiteralKind::Nil),
+            '}' => self.add_token(TokenKind::RightBrace, LiteralKind::Nil),
+            ',' => self.add_token(TokenKind::Comma, LiteralKind::Nil),
+            '.' => self.add_token(TokenKind::Dot, LiteralKind::Nil),
+            '-' => self.add_token(TokenKind::Minus, LiteralKind::Nil),
+            '+' => self.add_token(TokenKind::Plus, LiteralKind::Nil),
+            ';' => self.add_token(TokenKind::Semicolon, LiteralKind::Nil),
+            '*' => self.add_token(TokenKind::Star, LiteralKind::Nil),
             '!' => {
-                let kind = match self.try_match_next('=') {
+                let kind = match self.is_next_expected('=') {
                     true => TokenKind::BangEqual,
                     false => TokenKind::Bang,
                 };
-                self.add_token(kind, LiteralKind::Null);
+                self.add_token(kind, LiteralKind::Nil);
             }
             '=' => {
-                let kind = match self.try_match_next('=') {
+                let kind = match self.is_next_expected('=') {
                     true => TokenKind::EqualEqual,
                     false => TokenKind::Equal,
                 };
-                self.add_token(kind, LiteralKind::Null);
+                self.add_token(kind, LiteralKind::Nil);
             }
             '<' => {
-                let kind = match self.try_match_next('=') {
+                let kind = match self.is_next_expected('=') {
                     true => TokenKind::LessEqual,
                     false => TokenKind::Less,
                 };
-                self.add_token(kind, LiteralKind::Null);
+                self.add_token(kind, LiteralKind::Nil);
             }
             '>' => {
-                let kind = match self.try_match_next('=') {
+                let kind = match self.is_next_expected('=') {
                     true => TokenKind::GreaterEqual,
                     false => TokenKind::Greater,
                 };
-                self.add_token(kind, LiteralKind::Null);
+                self.add_token(kind, LiteralKind::Nil);
             }
-            '/' => match self.try_match_next('/') {
+            '/' => match self.is_next_expected('/') {
                 true => {
                     //comments
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
                 }
-                false => self.add_token(TokenKind::Slash, LiteralKind::Null),
+                false => self.add_token(TokenKind::Slash, LiteralKind::Nil),
             },
             ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
@@ -121,19 +121,11 @@ impl Scanner {
                     }
                 }
 
-                let mut literal: String = self.source[self.start..self.current]
+                let mut literal: f64 = self.source[self.start..self.current]
                     .iter()
-                    .collect::<String>();
-                if !literal.contains(".") {
-                    literal.push_str(".0");
-                } else {
-                    let mut split = literal.split(".").collect::<Vec<&str>>();
-                    if split[1].chars().all(|c| c == '0') {
-                        split.pop();
-                        split.push("0");
-                        literal = split.join(".");
-                    }
-                }
+                    .collect::<String>()
+                    .parse()
+                    .unwrap();
 
                 self.add_token(TokenKind::Number, LiteralKind::Number(literal));
             }
@@ -144,13 +136,13 @@ impl Scanner {
 
                 let lexume: String = self.source[self.start..self.current].iter().collect();
                 match KEYWORDS.get(&lexume.as_str()) {
-                    Some(kind) => self.add_token(*kind, LiteralKind::Null),
-                    None => self.add_token(TokenKind::Identifier, LiteralKind::Null),
+                    Some(kind) => self.add_token(*kind, LiteralKind::Nil),
+                    None => self.add_token(TokenKind::Identifier, LiteralKind::Nil),
                 }
             }
             _ => {
+                eprintln!("[line {}] Error: Unexpected character: {}", self.line, c);
                 self.has_errors = true;
-                eprintln!("[line {}] Error: Unexpected character: {}", self.line, c)
             }
         }
     }
@@ -167,7 +159,7 @@ impl Scanner {
             .push(Token::new(kind, lexeme, literal, self.line));
     }
 
-    fn try_match_next(&mut self, expected: char) -> bool {
+    fn is_next_expected(&mut self, expected: char) -> bool {
         if self.is_at_end() {
             return false;
         }

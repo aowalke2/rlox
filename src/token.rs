@@ -5,8 +5,8 @@ use lazy_static::lazy_static;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenKind {
     //Single character tokens
-    LeftParanthesis,
-    RightParanthesis,
+    LeftParenthesis,
+    RightParenthesis,
     LeftBrace,
     RightBrace,
     Comma,
@@ -54,8 +54,8 @@ impl Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use TokenKind::*;
         match self {
-            LeftParanthesis => write!(f, "LEFT_PAREN"),
-            RightParanthesis => write!(f, "RIGHT_PAREN"),
+            LeftParenthesis => write!(f, "LEFT_PAREN"),
+            RightParenthesis => write!(f, "RIGHT_PAREN"),
             LeftBrace => write!(f, "LEFT_BRACE"),
             RightBrace => write!(f, "RIGHT_BRACE"),
             Comma => write!(f, "COMMA"),
@@ -100,17 +100,41 @@ impl Display for TokenKind {
 #[derive(Debug, Clone, PartialEq)]
 pub enum LiteralKind {
     String(String),
-    Number(String),
+    Number(f64),
     Bool(bool),
-    Null,
+    Nil,
+}
+
+impl From<LiteralKind> for String {
+    fn from(literal: LiteralKind) -> Self {
+        match literal {
+            LiteralKind::String(string) => string,
+            LiteralKind::Number(number) => {
+                let mut number = number.to_string();
+                if !number.contains(".") {
+                    number.push_str(".0");
+                } else {
+                    let mut split = number.split(".").collect::<Vec<&str>>();
+                    if split[1].chars().all(|c| c == '0') {
+                        split.pop();
+                        split.push("0");
+                        number = split.join(".");
+                    }
+                }
+                number.to_string()
+            }
+            LiteralKind::Bool(bool) => bool.to_string(),
+            LiteralKind::Nil => "null".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Token {
-    kind: TokenKind,
-    lexeme: String,
-    literal: LiteralKind,
-    line: usize,
+    pub kind: TokenKind,
+    pub lexeme: String,
+    pub literal: LiteralKind,
+    pub line: usize,
 }
 
 impl Token {
@@ -126,14 +150,13 @@ impl Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let literal = match &self.literal {
-            LiteralKind::String(string) => string,
-            LiteralKind::Number(number) => &number,
-            LiteralKind::Bool(bool) => &bool.to_string(),
-            LiteralKind::Null => &"null".to_string(),
-        };
-
-        write!(f, "{} {} {}", self.kind, self.lexeme, literal)
+        write!(
+            f,
+            "{} {} {}",
+            self.kind,
+            self.lexeme,
+            String::from(self.literal.clone())
+        )
     }
 }
 

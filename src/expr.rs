@@ -88,7 +88,7 @@ pub struct Super {
     pub method: Token,
 }
 
-pub trait Visitor<T> {
+pub trait ExpressionVisitor<T> {
     fn visit_assignment(&mut self, expr: &Assignment) -> T;
     fn visit_binary(&mut self, expr: &Binary) -> T;
     fn visit_grouping(&mut self, expr: &Grouping) -> T;
@@ -104,7 +104,7 @@ pub trait Visitor<T> {
 }
 
 impl Expr {
-    pub fn accept<T>(&self, visitor: &mut dyn Visitor<T>) -> T {
+    pub fn accept<T>(&self, visitor: &mut dyn ExpressionVisitor<T>) -> T {
         match self {
             Expr::Assignment(assignment) => visitor.visit_assignment(assignment),
             Expr::Binary(binary) => visitor.visit_binary(binary),
