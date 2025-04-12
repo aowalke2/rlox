@@ -1,17 +1,15 @@
+use core::error;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process;
 
-use ast_printer::AstPrinter;
-use parser::Parser;
-use scanner::Scanner;
-
-mod ast_printer;
-mod expr;
-mod parser;
-mod scanner;
-mod token;
+use codecrafters_interpreter::ast_printer::AstPrinter;
+use codecrafters_interpreter::expr;
+use codecrafters_interpreter::interpreter;
+use codecrafters_interpreter::interpreter::Interpreter;
+use codecrafters_interpreter::parser::Parser;
+use codecrafters_interpreter::scanner::Scanner;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -31,6 +29,9 @@ fn main() {
     if !file_contents.is_empty() {
         let mut scanner = Scanner::new(file_contents);
         let tokens = scanner.scan_tokens();
+        let mut ast_printer = AstPrinter {};
+        let mut interpreter = Interpreter {};
+        let mut parser = Parser::new(tokens.clone());
 
         match command.as_str() {
             "tokenize" => {
@@ -42,13 +43,19 @@ fn main() {
                     process::exit(65);
                 }
             }
-            "parse" => {
-                let mut ast_printer = AstPrinter {};
-                let mut parser = Parser::new(tokens.clone());
-                match parser.parse() {
-                    Ok(expr) => println!("{}", ast_printer.print(expr)),
+            "parse" => match parser.parse() {
+                Ok(expr) => println!("{}", ast_printer.print(expr)),
+                Err(_) => process::exit(65),
+            },
+            "evaluate" => {
+                let expression = match parser.parse() {
+                    Ok(expr) => expr,
                     Err(_) => process::exit(65),
-                }
+                };
+                match interpreter.interpret(expression) {
+                    Ok(result) => println!("{}", result),
+                    Err(_) => process::exit(70),
+                };
             }
             _ => {
                 writeln!(io::stderr(), "Unknown command: {}", command).unwrap();

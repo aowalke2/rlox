@@ -1,5 +1,6 @@
 use crate::{
-    expr::{self, Binary, Expr, Grouping, Literal, Super, This, Unary, Variable},
+    expr::{Binary, Expr, Grouping, Literal, Super, This, Unary, Variable},
+    report,
     token::{LiteralKind, Token, TokenKind},
 };
 
@@ -214,7 +215,7 @@ impl Parser {
     }
 
     fn error(&self, token: &Token, message: &str) {
-        error(token.clone(), message);
+        crate::error(token.clone(), message);
     }
 
     fn synchronize(&mut self) {
@@ -238,17 +239,4 @@ impl Parser {
             }
         }
     }
-}
-
-pub fn error(token: Token, message: &str) {
-    if token.kind == TokenKind::EOF {
-        report(token.line, format!(" at end {}", message));
-    } else {
-        report(token.line, format!("at '{}': {}", &token.lexeme, message));
-    }
-}
-
-pub fn report(line: usize, message: String) {
-    let err = format!("[line {}] Error: {}", line, message);
-    eprintln!("{}", err);
 }

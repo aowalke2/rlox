@@ -121,7 +121,7 @@ impl Scanner {
                     }
                 }
 
-                let mut literal: f64 = self.source[self.start..self.current]
+                let literal: f64 = self.source[self.start..self.current]
                     .iter()
                     .collect::<String>()
                     .parse()
