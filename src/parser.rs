@@ -90,7 +90,7 @@ impl Parser {
             initializer = self.expression()?;
         }
         self.consume(
-            TokenKind::Identifier,
+            TokenKind::Semicolon,
             "Expect ';' after variable declaration.",
         )?;
         Ok(Stmt::Var(Var {
