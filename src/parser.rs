@@ -35,7 +35,7 @@ impl Parser {
     }
 
     pub fn parse_expression(&mut self) -> Result<Expr, ParserError> {
-        match self.equality() {
+        match self.assignment() {
             Ok(expr) => Ok(expr),
             Err(_) => Err(ParserError),
         }
