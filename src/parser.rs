@@ -1,6 +1,6 @@
 use crate::{
-    expr::{Binary, Expr, Grouping, Literal, Super, This, Unary, Variable},
-    report,
+    expr::{Assignment, Binary, Expr, Grouping, Literal, Super, This, Unary, Variable},
+    stmt::{Block, Expression, Print, Stmt, Var},
     token::{LiteralKind, Token, TokenKind},
 };
 
@@ -18,15 +18,121 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, ParserError> {
-        match self.expression() {
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, ParserError> {
+        let mut statements = Vec::new();
+        let mut has_error = false;
+        while !self.is_at_end() {
+            match self.declaration() {
+                Ok(statement) => statements.push(statement),
+                Err(_) => has_error = true,
+            }
+        }
+
+        match has_error {
+            false => Ok(statements),
+            true => Err(ParserError),
+        }
+    }
+
+    pub fn parse_expression(&mut self) -> Result<Expr, ParserError> {
+        match self.equality() {
             Ok(expr) => Ok(expr),
             Err(_) => Err(ParserError),
         }
     }
 
     fn expression(&mut self) -> Result<Expr, ParserError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn declaration(&mut self) -> Result<Stmt, ParserError> {
+        let statement = if self.token_match(&[TokenKind::Var]) {
+            self.var_declaration()
+        } else {
+            self.statement()
+        };
+
+        match &statement {
+            Ok(_) => statement,
+            Err(_) => {
+                self.synchronize();
+                Err(ParserError)
+            }
+        }
+    }
+
+    fn statement(&mut self) -> Result<Stmt, ParserError> {
+        if self.token_match(&[TokenKind::Print]) {
+            return self.print_statement();
+        }
+        if self.token_match(&[TokenKind::LeftBrace]) {
+            return Ok(Stmt::Block(Block {
+                statements: self.block()?,
+            }));
+        }
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, ParserError> {
+        let value = self.expression()?;
+        self.consume(TokenKind::Semicolon, "Expect ';' after value.")?;
+        Ok(Stmt::Print(Print {
+            expression: Box::new(value),
+        }))
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, ParserError> {
+        let name = self.consume(TokenKind::Identifier, "Expect variable name.")?;
+        let mut initializer = Expr::Literal(Literal {
+            value: LiteralKind::Nil,
+        });
+        if self.token_match(&[TokenKind::Equal]) {
+            initializer = self.expression()?;
+        }
+        self.consume(
+            TokenKind::Identifier,
+            "Expect ';' after variable declaration.",
+        )?;
+        Ok(Stmt::Var(Var {
+            name,
+            initializer: Box::new(initializer),
+        }))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, ParserError> {
+        let expr = self.expression()?;
+        self.consume(TokenKind::Semicolon, "Expect ';' after expression.")?;
+        Ok(Stmt::Expression(Expression {
+            expression: Box::new(expr),
+        }))
+    }
+
+    fn block(&mut self) -> Result<Vec<Stmt>, ParserError> {
+        let mut statements = Vec::new();
+        while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
+            statements.push(self.declaration()?);
+        }
+        self.consume(TokenKind::RightBrace, "Expect '}' after block.")?;
+        Ok(statements)
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParserError> {
+        let expr = self.equality()?;
+        if self.token_match(&[TokenKind::Equal]) {
+            let equals = self.previous();
+            let value = self.assignment()?;
+            if let Expr::Variable(variable) = expr {
+                return Ok(Expr::Assignment(Assignment {
+                    name: variable.name,
+                    value: Box::new(value),
+                }));
+            } else {
+                self.error(&equals, "Invalid assignment target.");
+                return Err(ParserError);
+            }
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr, ParserError> {

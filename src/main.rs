@@ -30,7 +30,7 @@ fn main() {
         let mut scanner = Scanner::new(file_contents);
         let tokens = scanner.scan_tokens();
         let mut ast_printer = AstPrinter {};
-        let mut interpreter = Interpreter {};
+        let mut interpreter = Interpreter::new();
         let mut parser = Parser::new(tokens.clone());
 
         match command.as_str() {
@@ -43,18 +43,28 @@ fn main() {
                     process::exit(65);
                 }
             }
-            "parse" => match parser.parse() {
+            "parse" => match parser.parse_expression() {
                 Ok(expr) => println!("{}", ast_printer.print(expr)),
                 Err(_) => process::exit(65),
             },
             "evaluate" => {
-                let expression = match parser.parse() {
+                let expression = match parser.parse_expression() {
                     Ok(expr) => expr,
                     Err(_) => process::exit(65),
                 };
-                match interpreter.interpret(expression) {
+                match interpreter.interpret_expression(&expression) {
                     Ok(result) => println!("{}", result),
                     Err(_) => process::exit(70),
+                }
+            }
+            "run" => {
+                let statements = match parser.parse() {
+                    Ok(stmt) => stmt,
+                    Err(_) => process::exit(65),
+                };
+
+                if let Err(_) = interpreter.interpret(&statements) {
+                    process::exit(70);
                 };
             }
             _ => {

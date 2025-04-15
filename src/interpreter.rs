@@ -1,7 +1,11 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
-    expr::{self, *},
+    environement::Environment,
+    expr::{self, Expr, ExpressionVisitor, Literal},
     report,
-    token::{LiteralKind, TokenKind},
+    stmt::{self, StatementVisitor, Stmt},
+    token::{LiteralKind, Token, TokenKind},
 };
 
 pub enum Exit {
@@ -9,10 +13,37 @@ pub enum Exit {
     Return(LiteralKind),
 }
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    environment: Rc<RefCell<Environment>>,
+}
 
 impl Interpreter {
-    pub fn interpret(&mut self, expr: Expr) -> Result<String, Exit> {
+    pub fn new() -> Self {
+        Self {
+            environment: Rc::new(RefCell::new(Environment::new())),
+        }
+    }
+
+    pub fn interpret(&mut self, statements: &[Stmt]) -> Result<(), Exit> {
+        let mut has_error = false;
+        for statement in statements.iter() {
+            match self.execute(statement) {
+                Ok(_) => (),
+                Err(e) => {
+                    if let Exit::RuntimeError = e {
+                        has_error = true;
+                    }
+                }
+            }
+        }
+
+        match has_error {
+            true => Err(Exit::RuntimeError),
+            false => Ok(()),
+        }
+    }
+
+    pub fn interpret_expression(&mut self, expr: &Expr) -> Result<String, Exit> {
         match self.evaluate(&expr) {
             Ok(literal) => Ok(self.stringify(literal)),
             Err(exit) => match exit {
@@ -20,6 +51,10 @@ impl Interpreter {
                 Exit::Return(_literal_kind) => todo!(),
             },
         }
+    }
+
+    fn execute(&mut self, stmt: &Stmt) -> Result<(), Exit> {
+        stmt.accept(self)
     }
 
     fn stringify(&self, literal: LiteralKind) -> String {
@@ -37,7 +72,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> Result<LiteralKind, Exit> {
+    fn evaluate(&mut self, expr: &expr::Expr) -> Result<LiteralKind, Exit> {
         expr.accept(self)
     }
 
@@ -64,14 +99,30 @@ impl Interpreter {
             _ => false,
         }
     }
+
+    pub fn execute_block(
+        &mut self,
+        statements: &[Stmt],
+        environment: Environment,
+    ) -> Result<(), Exit> {
+        let previous = Rc::clone(&self.environment);
+        self.environment = Rc::new(RefCell::new(environment));
+        let result = statements.iter().try_for_each(|stat| self.execute(stat));
+        self.environment = previous;
+        result
+    }
 }
 
 impl ExpressionVisitor<Result<LiteralKind, Exit>> for Interpreter {
-    fn visit_assignment(&mut self, expr: &Assignment) -> Result<LiteralKind, Exit> {
-        todo!()
+    fn visit_assignment(&mut self, expr: &expr::Assignment) -> Result<LiteralKind, Exit> {
+        let value = self.evaluate(&expr.value)?;
+        self.environment
+            .borrow_mut()
+            .assign(&expr.name, value.clone())?;
+        Ok(value)
     }
 
-    fn visit_binary(&mut self, expr: &Binary) -> Result<LiteralKind, Exit> {
+    fn visit_binary(&mut self, expr: &expr::Binary) -> Result<LiteralKind, Exit> {
         let right = self.evaluate(&expr.right)?;
         let left = self.evaluate(&expr.left)?;
         match expr.operator.kind {
@@ -152,19 +203,19 @@ impl ExpressionVisitor<Result<LiteralKind, Exit>> for Interpreter {
         }
     }
 
-    fn visit_grouping(&mut self, expr: &Grouping) -> Result<LiteralKind, Exit> {
+    fn visit_grouping(&mut self, expr: &expr::Grouping) -> Result<LiteralKind, Exit> {
         self.evaluate(&expr.expr)
     }
 
-    fn visit_literal(&self, expr: &Literal) -> Result<LiteralKind, Exit> {
+    fn visit_literal(&self, expr: &expr::Literal) -> Result<LiteralKind, Exit> {
         Ok(expr.value.clone())
     }
 
-    fn visit_logical(&mut self, expr: &Logical) -> Result<LiteralKind, Exit> {
+    fn visit_logical(&mut self, expr: &expr::Logical) -> Result<LiteralKind, Exit> {
         todo!()
     }
 
-    fn visit_unary(&mut self, expr: &Unary) -> Result<LiteralKind, Exit> {
+    fn visit_unary(&mut self, expr: &expr::Unary) -> Result<LiteralKind, Exit> {
         let right = self.evaluate(&expr.right)?;
         match expr.operator.kind {
             TokenKind::Minus => match right {
@@ -179,27 +230,84 @@ impl ExpressionVisitor<Result<LiteralKind, Exit>> for Interpreter {
         }
     }
 
-    fn visit_variable(&mut self, expr: &Variable) -> Result<LiteralKind, Exit> {
+    fn visit_variable(&mut self, expr: &expr::Variable) -> Result<LiteralKind, Exit> {
+        self.environment.borrow().get(&expr.name)
+    }
+
+    fn visit_call(&mut self, expr: &expr::Call) -> Result<LiteralKind, Exit> {
         todo!()
     }
 
-    fn visit_call(&mut self, expr: &Call) -> Result<LiteralKind, Exit> {
+    fn visit_get(&mut self, expr: &expr::Get) -> Result<LiteralKind, Exit> {
         todo!()
     }
 
-    fn visit_get(&mut self, expr: &Get) -> Result<LiteralKind, Exit> {
+    fn visit_set(&mut self, expr: &expr::Set) -> Result<LiteralKind, Exit> {
         todo!()
     }
 
-    fn visit_set(&mut self, expr: &Set) -> Result<LiteralKind, Exit> {
+    fn visit_this(&mut self, expr: &expr::This) -> Result<LiteralKind, Exit> {
         todo!()
     }
 
-    fn visit_this(&mut self, expr: &This) -> Result<LiteralKind, Exit> {
+    fn visit_super(&mut self, expr: &expr::Super) -> Result<LiteralKind, Exit> {
+        todo!()
+    }
+}
+
+impl StatementVisitor<Result<(), Exit>> for Interpreter {
+    fn visit_expression(&mut self, stmt: &stmt::Expression) -> Result<(), Exit> {
+        self.evaluate(&stmt.expression)?;
+        Ok(())
+    }
+
+    fn visit_print(&mut self, stmt: &stmt::Print) -> Result<(), Exit> {
+        let value = self.evaluate(&stmt.expression)?;
+        println!("{}", self.stringify(value));
+        Ok(())
+    }
+
+    fn visit_var(&mut self, stmt: &stmt::Var) -> Result<(), Exit> {
+        let value = if let Expr::Literal(Literal {
+            value: LiteralKind::Nil,
+        }) = *stmt.initializer
+        {
+            self.evaluate(&stmt.initializer)?
+        } else {
+            self.evaluate(&stmt.initializer)?
+        };
+
+        self.environment
+            .borrow_mut()
+            .define(stmt.name.lexeme.clone(), value);
+        Ok(())
+    }
+
+    fn visit_block(&mut self, stmt: &stmt::Block) -> Result<(), Exit> {
+        self.execute_block(
+            &stmt.statements,
+            Environment::new_with_enclosing(self.environment.clone()),
+        )?;
+        Ok(())
+    }
+
+    fn visit_if(&mut self, stmt: &stmt::If) -> Result<(), Exit> {
         todo!()
     }
 
-    fn visit_super(&mut self, expr: &Super) -> Result<LiteralKind, Exit> {
+    fn visit_while(&mut self, stmt: &stmt::While) -> Result<(), Exit> {
+        todo!()
+    }
+
+    fn visit_function(&mut self, stmt: &stmt::Function) -> Result<(), Exit> {
+        todo!()
+    }
+
+    fn visit_return(&mut self, stmt: &stmt::Return) -> Result<(), Exit> {
+        todo!()
+    }
+
+    fn visit_class(&mut self, stmt: &stmt::Class) -> Result<(), Exit> {
         todo!()
     }
 }

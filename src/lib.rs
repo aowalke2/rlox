@@ -1,10 +1,12 @@
 use token::{Token, TokenKind};
 
 pub mod ast_printer;
+pub mod environement;
 pub mod expr;
 pub mod interpreter;
 pub mod parser;
 pub mod scanner;
+pub mod stmt;
 pub mod token;
 
 pub fn report(line: usize, message: &str) {
