@@ -32,6 +32,7 @@ impl Interpreter {
                 Err(e) => {
                     if let Exit::RuntimeError = e {
                         has_error = true;
+                        break;
                     }
                 }
             }
