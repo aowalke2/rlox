@@ -1,12 +1,9 @@
-use core::error;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process;
 
 use codecrafters_interpreter::ast_printer::AstPrinter;
-use codecrafters_interpreter::expr;
-use codecrafters_interpreter::interpreter;
 use codecrafters_interpreter::interpreter::Interpreter;
 use codecrafters_interpreter::parser::Parser;
 use codecrafters_interpreter::scanner::Scanner;
