@@ -5,7 +5,7 @@ use crate::{
     expr::{self, Expr, ExpressionVisitor, Literal},
     report,
     stmt::{self, StatementVisitor, Stmt},
-    token::{LiteralKind, Token, TokenKind},
+    token::{LiteralKind, TokenKind},
 };
 
 pub enum Exit {

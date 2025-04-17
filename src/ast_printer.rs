@@ -1,10 +1,4 @@
-use crate::{
-    expr::{
-        Assignment, Binary, Call, Expr, ExpressionVisitor, Get, Grouping, Literal, Logical, Set,
-        Super, This, Unary, Variable,
-    },
-    token::LiteralKind,
-};
+use crate::{expr::*, token::LiteralKind};
 
 pub struct AstPrinter {}
 
@@ -28,7 +22,7 @@ impl AstPrinter {
 }
 
 impl ExpressionVisitor<String> for AstPrinter {
-    fn visit_assignment(&mut self, expr: &Assignment) -> String {
+    fn visit_assignment(&mut self, _expr: &Assignment) -> String {
         todo!()
     }
 
@@ -50,7 +44,7 @@ impl ExpressionVisitor<String> for AstPrinter {
         String::from(expr.value.clone())
     }
 
-    fn visit_logical(&mut self, expr: &Logical) -> String {
+    fn visit_logical(&mut self, _expr: &Logical) -> String {
         todo!()
     }
 
@@ -58,27 +52,27 @@ impl ExpressionVisitor<String> for AstPrinter {
         self.parenthesize(expr.operator.lexeme.clone(), &[*expr.right.clone()])
     }
 
-    fn visit_variable(&mut self, expr: &Variable) -> String {
+    fn visit_variable(&mut self, _expr: &Variable) -> String {
         todo!()
     }
 
-    fn visit_call(&mut self, expr: &Call) -> String {
+    fn visit_call(&mut self, _expr: &Call) -> String {
         todo!()
     }
 
-    fn visit_get(&mut self, expr: &Get) -> String {
+    fn visit_get(&mut self, _expr: &Get) -> String {
         todo!()
     }
 
-    fn visit_set(&mut self, expr: &Set) -> String {
+    fn visit_set(&mut self, _expr: &Set) -> String {
         todo!()
     }
 
-    fn visit_this(&mut self, expr: &This) -> String {
+    fn visit_this(&mut self, _expr: &This) -> String {
         todo!()
     }
 
-    fn visit_super(&mut self, expr: &Super) -> String {
+    fn visit_super(&mut self, _expr: &Super) -> String {
         todo!()
     }
 }
