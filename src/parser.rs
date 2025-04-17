@@ -1,6 +1,6 @@
 use crate::{
-    expr::{Assignment, Binary, Expr, Grouping, Literal, Logical, Super, This, Unary, Variable},
-    stmt::{Block, Expression, If, Print, Stmt, Var, While},
+    expr::*,
+    stmt::*,
     token::{LiteralKind, Token, TokenKind},
 };
 
