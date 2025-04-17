@@ -77,9 +77,9 @@ impl Interpreter {
         expr.accept(self)
     }
 
-    fn is_truthy(&self, literal: LiteralKind) -> bool {
+    fn is_truthy(&self, literal: &LiteralKind) -> bool {
         match literal {
-            LiteralKind::Bool(boolean) => boolean,
+            LiteralKind::Bool(boolean) => *boolean,
             LiteralKind::Nil => false,
             _ => true,
         }
@@ -213,7 +213,16 @@ impl ExpressionVisitor<Result<LiteralKind, Exit>> for Interpreter {
     }
 
     fn visit_logical(&mut self, expr: &expr::Logical) -> Result<LiteralKind, Exit> {
-        todo!()
+        let left = self.evaluate(&expr.left)?;
+        if expr.operator.kind == TokenKind::Or {
+            if self.is_truthy(&left) {
+                return Ok(left);
+            };
+        } else if !self.is_truthy(&left) {
+            return Ok(left);
+        }
+
+        self.evaluate(&expr.right)
     }
 
     fn visit_unary(&mut self, expr: &expr::Unary) -> Result<LiteralKind, Exit> {
@@ -226,7 +235,7 @@ impl ExpressionVisitor<Result<LiteralKind, Exit>> for Interpreter {
                     Err(Exit::RuntimeError)
                 }
             },
-            TokenKind::Bang => Ok(LiteralKind::Bool(!self.is_truthy(right))),
+            TokenKind::Bang => Ok(LiteralKind::Bool(!self.is_truthy(&right))),
             _ => unreachable!(),
         }
     }
@@ -293,11 +302,26 @@ impl StatementVisitor<Result<(), Exit>> for Interpreter {
     }
 
     fn visit_if(&mut self, stmt: &stmt::If) -> Result<(), Exit> {
-        todo!()
+        let literal = self.evaluate(&stmt.condition)?;
+        if self.is_truthy(&literal) {
+            self.execute(&stmt.then_branch)?;
+        } else if let Some(else_branch) = &stmt.else_branch {
+            self.execute(&else_branch)?;
+        }
+
+        Ok(())
     }
 
     fn visit_while(&mut self, stmt: &stmt::While) -> Result<(), Exit> {
-        todo!()
+        loop {
+            let literal = self.evaluate(&stmt.condition)?;
+            if !self.is_truthy(&literal) {
+                break;
+            }
+            self.execute(&stmt.body)?;
+        }
+
+        Ok(())
     }
 
     fn visit_function(&mut self, stmt: &stmt::Function) -> Result<(), Exit> {

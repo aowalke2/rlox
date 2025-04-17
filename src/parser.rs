@@ -1,6 +1,6 @@
 use crate::{
-    expr::{Assignment, Binary, Expr, Grouping, Literal, Super, This, Unary, Variable},
-    stmt::{Block, Expression, Print, Stmt, Var},
+    expr::{Assignment, Binary, Expr, Grouping, Literal, Logical, Super, This, Unary, Variable},
+    stmt::{Block, Expression, If, Print, Stmt, Var, While},
     token::{LiteralKind, Token, TokenKind},
 };
 
@@ -62,8 +62,17 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, ParserError> {
+        if self.token_match(&[TokenKind::For]) {
+            return self.for_statement();
+        }
+        if self.token_match(&[TokenKind::If]) {
+            return self.if_statement();
+        }
         if self.token_match(&[TokenKind::Print]) {
             return self.print_statement();
+        }
+        if self.token_match(&[TokenKind::While]) {
+            return self.while_statement();
         }
         if self.token_match(&[TokenKind::LeftBrace]) {
             return Ok(Stmt::Block(Block {
@@ -71,6 +80,80 @@ impl Parser {
             }));
         }
         self.expression_statement()
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt, ParserError> {
+        self.consume(TokenKind::LeftParenthesis, "Expect '(' after 'for'.")?;
+        let initializer = if self.token_match(&[TokenKind::Semicolon]) {
+            None
+        } else if self.token_match(&[TokenKind::Var]) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expression_statement()?)
+        };
+
+        let condition = if !self.check(&TokenKind::Semicolon) {
+            self.expression()?
+        } else {
+            Expr::Literal(Literal {
+                value: LiteralKind::Bool(true),
+            })
+        };
+        self.consume(TokenKind::Semicolon, "Expect ';' after loop condition.")?;
+
+        let increment = if !self.check(&TokenKind::RightParenthesis) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(TokenKind::RightParenthesis, "Expect ')' after for clauses.")?;
+
+        let mut body = self.statement()?;
+        if let Some(increment) = increment {
+            body = Stmt::Block(Block {
+                statements: Vec::from([
+                    body,
+                    Stmt::Expression(Expression {
+                        expression: Box::new(increment),
+                    }),
+                ]),
+            });
+        };
+
+        body = Stmt::While(While {
+            condition: Box::new(condition),
+            body: Box::new(body),
+        });
+
+        if let Some(initializer) = initializer {
+            body = Stmt::Block(Block {
+                statements: Vec::from([initializer, body]),
+            })
+        }
+
+        Ok(body)
+    }
+
+    fn if_statement(&mut self) -> Result<Stmt, ParserError> {
+        self.consume(TokenKind::LeftParenthesis, "Expect '(' after 'if'.")?;
+        let condition = self.expression()?;
+        self.consume(
+            TokenKind::RightParenthesis,
+            "Expect ')' after if condition.",
+        )?;
+
+        let then_branch = self.statement()?;
+        let else_branch = if self.token_match(&[TokenKind::Else]) {
+            Some(self.statement()?)
+        } else {
+            None
+        };
+
+        Ok(Stmt::If(If {
+            condition: Box::new(condition),
+            then_branch: Box::new(then_branch),
+            else_branch: else_branch.map(Box::new),
+        }))
     }
 
     fn print_statement(&mut self) -> Result<Stmt, ParserError> {
@@ -99,6 +182,17 @@ impl Parser {
         }))
     }
 
+    fn while_statement(&mut self) -> Result<Stmt, ParserError> {
+        self.consume(TokenKind::LeftParenthesis, "Expect '(' after 'while'.")?;
+        let condition = self.expression()?;
+        self.consume(TokenKind::RightParenthesis, "Expect ')' after condition.")?;
+        let body = self.statement()?;
+        Ok(Stmt::While(While {
+            condition: Box::new(condition),
+            body: Box::new(body),
+        }))
+    }
+
     fn expression_statement(&mut self) -> Result<Stmt, ParserError> {
         let expr = self.expression()?;
         self.consume(TokenKind::Semicolon, "Expect ';' after expression.")?;
@@ -117,7 +211,8 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<Expr, ParserError> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
+
         if self.token_match(&[TokenKind::Equal]) {
             let equals = self.previous();
             let value = self.assignment()?;
@@ -130,6 +225,36 @@ impl Parser {
                 self.error(&equals, "Invalid assignment target.");
                 return Err(ParserError);
             }
+        }
+
+        Ok(expr)
+    }
+
+    fn or(&mut self) -> Result<Expr, ParserError> {
+        let mut expr = self.and()?;
+        while self.token_match(&[TokenKind::Or]) {
+            let operator = self.previous();
+            let right = self.and()?;
+            expr = Expr::Logical(Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            })
+        }
+
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<Expr, ParserError> {
+        let mut expr = self.equality()?;
+        while self.token_match(&[TokenKind::And]) {
+            let operator = self.previous();
+            let right = self.equality()?;
+            expr = Expr::Logical(Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            })
         }
 
         Ok(expr)
